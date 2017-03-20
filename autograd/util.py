@@ -60,6 +60,14 @@ def check_grads(fun, *args):
     numeric = nd(fun, *args)
     check_equivalent(exact, numeric)
 
+    args = [np.array(arg).astype(np.float32) for arg in args]
+    exact32 = tuple([grad(fun, i)(*args) for i in range(len(args))])
+    numeric32 = nd(fun, *args)
+    try:
+        check_equivalent(exact32, numeric32)
+    except:
+        raise ValueError("Test failed for float 32 dtype")
+
 def to_scalar(x):
     if isinstance(getval(x), list)  or isinstance(getval(x), tuple):
         return sum([to_scalar(item) for item in x])
