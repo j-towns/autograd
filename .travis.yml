@@ -19,5 +19,8 @@ before_install:
   - conda config --add channels conda-forge
 install:
   - conda install --yes python=$TRAVIS_PYTHON_VERSION pip numpy scipy nose future
+  - pip install asv
   - pip install -v .
-script: nosetests tests
+script:
+  - nosetests tests
+  - asv continuous $(if [ "$TRAVIS_PULL_REQUEST" == "true" ]; then echo $TRAVIS_BRANCH; fi) $(if [ "$TRAVIS_PULL_REQUEST" == "false" ]; then echo $TRAVIS_BRANCH; else echo $TRAVIS_PULL_REQUEST_BRANCH; fi)
