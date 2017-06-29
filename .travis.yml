@@ -20,6 +20,7 @@ before_install:
 install:
   - conda install --yes python=$TRAVIS_PYTHON_VERSION pip numpy scipy nose future
   - pip install asv
+  - asv machine --machine travis
   - pip install -v .
 script:
   - nosetests tests
