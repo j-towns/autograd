@@ -80,10 +80,10 @@ def vae_lower_bound(gen_params, rec_params, data, rs):
     latents = sample_diag_gaussian(q_means, q_log_stds, rs)
     q_latents = diag_gaussian_log_density(latents, q_means, q_log_stds)
     p_latents = diag_gaussian_log_density(latents, 0, 0)
-    obs_p = neural_net_predict(gen_params, latents)
-    e_data = energy(data, obs_p)
-    state = sample_bernoulli(getval(obs_p), rs)
-    e_state = energy(state, obs_p)
+    obs_b = neural_net_predict(gen_params, latents)
+    e_data = energy(data, obs_b)
+    state = sample_bernoulli(sigmoid(getval(obs_b)), rs)
+    e_state = energy(state, obs_b)
     return np.mean(p_latents + e_data - e_state - q_latents)
 
 if __name__ == '__main__':
