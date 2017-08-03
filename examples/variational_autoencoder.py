@@ -7,7 +7,9 @@ import autograd.numpy.random as npr
 import autograd.scipy.stats.norm as norm
 
 from autograd import grad
+from autograd.core import getval
 from autograd.optimizers import adam
+from autograd.scipy.special import expit
 from data import load_mnist, save_images
 
 def diag_gaussian_log_density(x, mu, log_std):
@@ -27,6 +29,9 @@ def bernoulli_log_density(targets, unnormalized_logprobs):
     # Targets must be -1 or 1
     label_probabilities = -np.logaddexp(0, -unnormalized_logprobs*targets)
     return np.sum(label_probabilities, axis=-1)   # Sum across pixels.
+
+def energy(targets, unnormalized_logprobs):
+    return np.sum((targets + 1) / 2 * unnormalized_logprobs)
 
 def relu(x):    return np.maximum(0, x)
 def sigmoid(x): return 0.5 * (np.tanh(0.5 * x) + 1)
@@ -64,6 +69,10 @@ def p_images_given_latents(gen_params, images, latents):
     preds = neural_net_predict(gen_params, latents)
     return bernoulli_log_density(images, preds)
 
+def sample_bernoulli(p, rs):
+    state = (rs.rand(*p.shape) < p).astype(np.float64)
+    return 2 * state - 1
+
 def vae_lower_bound(gen_params, rec_params, data, rs):
     # We use a simple Monte Carlo estimate of the KL
     # divergence from the prior.
@@ -71,9 +80,11 @@ def vae_lower_bound(gen_params, rec_params, data, rs):
     latents = sample_diag_gaussian(q_means, q_log_stds, rs)
     q_latents = diag_gaussian_log_density(latents, q_means, q_log_stds)
     p_latents = diag_gaussian_log_density(latents, 0, 0)
-    likelihood = p_images_given_latents(gen_params, data, latents)
-    return np.mean(p_latents + likelihood - q_latents)
-
+    obs_p = neural_net_predict(gen_params, latents)
+    e_data = energy(data, obs_p)
+    state = sample_bernoulli(getval(obs_p), rs)
+    e_state = energy(state, obs_p)
+    return np.mean(p_latents + e_data - e_state - q_latents)
 
 if __name__ == '__main__':
     # Model hyper-parameters
