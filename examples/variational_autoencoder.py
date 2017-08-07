@@ -9,7 +9,7 @@ import autograd.scipy.stats.norm as norm
 from autograd import grad
 from autograd.core import getval
 from autograd.optimizers import adam
-from autograd.scipy.special import expit
+from autograd.scipy.special import expit as sigmoid
 from data import load_mnist, save_images
 
 def diag_gaussian_log_density(x, mu, log_std):
@@ -34,7 +34,6 @@ def energy(targets, unnormalized_logprobs):
     return np.sum((targets + 1) / 2 * unnormalized_logprobs)
 
 def relu(x):    return np.maximum(0, x)
-def sigmoid(x): return 0.5 * (np.tanh(0.5 * x) + 1)
 
 def init_net_params(scale, layer_sizes, rs=npr.RandomState(0)):
     """Build a (weights, biases) tuples for all layers."""
