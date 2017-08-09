@@ -48,6 +48,10 @@ def adam(grad, init_params, callback=None, num_iters=100,
     m = np.zeros(len(x))
     v = np.zeros(len(x))
     for i in range(num_iters):
+        if i % 12000 == 0:
+            if i != 0:
+                step_size /= 2
+            print("New step size: " + step_size)
         g = flattened_grad(x, i)
         if callback: callback(unflatten(x), i, unflatten(g))
         m = (1 - b1) * g      + b1 * m  # First  moment estimate.
