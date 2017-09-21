@@ -26,7 +26,7 @@ def defvjp(fun, vjpmaker, argnum=0):
             vjp_1 = vjps_dict[argnum_1](ans, *args, **kwargs)
             return lambda g: (vjp_0(g), vjp_1(g))
         else:
-            vjps = [vjps_dict[argnum](ans, *args, **kwargs) for argnum in argnums]
+            vjps = (vjps_dict[argnum](ans, *args, **kwargs) for argnum in argnums)
             return lambda g: (vjp(g) for vjp in vjps)
 
     defvjp_argnums(fun, vjp_argnums)
