@@ -219,34 +219,30 @@ def grad_transpose(ans, x, axes=None):
     return lambda g: anp.transpose(g, axes)
 defvjp(anp.transpose, grad_transpose)
 
-def repeat_to_match_shape(g, shape, dtype, axis, keepdims):
-    """Returns the array g repeated along axis to fit vector space vs.
-       Also returns the number of repetitions of the array."""
-    if shape == ():
-      return g, 1
-    axis = list(axis) if isinstance(axis, tuple) else axis
-    new_shape = onp.array(shape)
-    new_shape[axis] = 1
-    num_reps = onp.prod(onp.array(shape)[axis])
-    return anp.reshape(g, new_shape) + onp.zeros(shape, dtype=dtype), num_reps
+defvjp(anp.repeat_to_match_shape, lambda ans, x, shape, axis, keepdims:
+       lambda g: anp.sum(g, axis=axis, keepdims=keepdims))
 
-def grad_np_sum(ans, x, axis=None, keepdims=False, dtype=None):
-    shape, dtype = anp.shape(x), anp.result_type(x)
-    return lambda g: repeat_to_match_shape(g, shape, dtype, axis, keepdims)[0]
+def grad_np_sum(ans, x, axis=None, keepdims=False):
+    shape = anp.shape(x)
+    return lambda g: anp.repeat_to_match_shape(g, shape, axis, keepdims)
 defvjp(anp.sum, grad_np_sum)
 
+def num_reps(old_shape, new_shape):
+    return onp.prod(new_shape) / onp.prod(old_shape)
+
 def grad_np_mean(ans, x, axis=None, keepdims=False):
-    shape, dtype = anp.shape(x), anp.result_type(x)
+    shape = anp.shape(x)
     def vjp(g):
-        g_repeated, num_reps = repeat_to_match_shape(g, shape, dtype, axis, keepdims)
-        return g_repeated / num_reps
+        g_repeated = anp.repeat_to_match_shape(g, shape, axis, keepdims)
+        nr = num_reps(anp.shape(g), shape)
+        return g_repeated / nr
     return vjp
 defvjp(anp.mean, grad_np_mean)
 
 def grad_np_prod(ans, x, axis=None, keepdims=False): # TODO: Support tuples of axes.
-    shape, dtype = anp.shape(x), anp.result_type(x)
+    shape = anp.shape(x)
     def vjp(g):
-        g_repeated, _ = repeat_to_match_shape(g * ans, shape, dtype, axis, keepdims)
+        g_repeated = anp.repeat_to_match_shape(g * ans, shape, axis, keepdims)
         return g_repeated / x
     return vjp
 defvjp(anp.prod, grad_np_prod)
@@ -256,9 +252,10 @@ def grad_np_var(ans, x, axis=None, ddof=0, keepdims=False):
     def vjp(g):
         if iscomplex:
             g = g + 0j
-        g_repeated, num_reps = repeat_to_match_shape(g, shape, dtype, axis, keepdims)
+        g_repeated = anp.repeat_to_match_shape(g, shape, axis, keepdims)
+        nr = num_reps(anp.shape(g), shape)
         x_minus_mean = anp.conj(x - anp.mean(x, axis=axis, keepdims=True))
-        return 2.0 * g_repeated * x_minus_mean / (num_reps - ddof)
+        return 2.0 * g_repeated * x_minus_mean / (nr - ddof)
     return vjp
 defvjp(anp.var, grad_np_var)
 
@@ -267,22 +264,22 @@ def grad_np_std(ans, x, axis=None, ddof=0, keepdims=False):
     def vjp(g):
         if iscomplex:
             g = g + 0j
-        g_repeated, num_reps = repeat_to_match_shape(g, shape, dtype, axis, keepdims)  # Avoid division by zero.
-        if num_reps <= 1:
-            return g_repeated * 0.0
+        nr = num_reps(anp.shape(g), shape)
+        if nr <= 1:
+            return onp.zeros(shape)
         else:
-            g_repeated, num_reps = repeat_to_match_shape(g / ans, shape, dtype, axis, keepdims)
+            g_repeated = anp.repeat_to_match_shape(g / ans, shape, axis, keepdims)
             x_minus_mean = anp.conj(x - anp.mean(x, axis=axis, keepdims=True))
-            return g_repeated * x_minus_mean / (num_reps - ddof)
+            return g_repeated * x_minus_mean / (nr - ddof)
     return vjp
 defvjp(anp.std, grad_np_std)
 
-def grad_chooser(ans, x, axis=None, keepdims=None):
+def grad_chooser(ans, x, axis=None, keepdims=False):
     shape, dtype = anp.shape(x), anp.result_type(x)
     def vjp(g):
         """Builds gradient of functions that choose a single item, such as min or max."""
-        g_repeated, _ = repeat_to_match_shape(g, shape, dtype, axis, keepdims)
-        argmax_locations = x == repeat_to_match_shape(ans, shape, dtype, axis, keepdims)[0]
+        g_repeated = anp.repeat_to_match_shape(g, shape, axis, keepdims)
+        argmax_locations = x == anp.repeat_to_match_shape(ans, shape, axis, keepdims)
         return g_repeated * argmax_locations \
             / onp.sum(argmax_locations, axis=axis, keepdims=True)
     return vjp

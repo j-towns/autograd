@@ -16,6 +16,7 @@ defjvp(untake, 'same')
 defjvp_argnum(anp.array_from_args, lambda argnum, g, ans, args, kwargs: untake(g, argnum-2, vspace(ans)))
 defjvp(anp._array_from_scalar_or_array, None, None,
        lambda g, ans, args, kwargs, _: anp._array_from_scalar_or_array(args, kwargs, g))
+defjvp(anp.repeat_to_match_shape, 'same')
 
 # ----- Functions that are constant w.r.t. continuous inputs -----
 defjvp(anp.nan_to_num, lambda g, ans, x: anp.where(anp.isfinite(x), g, 0.))

@@ -156,3 +156,13 @@ def parse_einsum_input(*args):
 @primitive
 def _astype(A, dtype, order='K', casting='unsafe', subok=True, copy=True):
   return A.astype(dtype, order, casting, subok, copy)
+
+@primitive
+def repeat_to_match_shape(g, shape, axis, keepdims):
+    """Returns the array g repeated along axis to fit shape."""
+    if shape == ():
+        return g
+    axis = list(axis) if isinstance(axis, tuple) else axis
+    new_shape = _np.array(shape)
+    new_shape[axis] = 1
+    return _np.broadcast_to(_np.reshape(g, new_shape), shape)
