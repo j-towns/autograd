@@ -32,18 +32,23 @@ def unflatten_optimizer(optimize):
     return _optimize
 
 @unflatten_optimizer
-def adam(val_and_grad, x, callback=None, num_iters=100,
+def adam(val_and_grad, x, callback=None, interrupt=None, num_iters=100,
          step_size=0.001, b1=0.9, b2=0.999, eps=10**-8):
     """Adam as described in http://arxiv.org/pdf/1412.6980.pdf.
     It's basically RMSprop with momentum and some correction terms."""
     m = np.zeros(len(x))
     v = np.zeros(len(x))
     for i in range(num_iters):
-        val, g = val_and_grad(x, i)
-        if callback: callback(x, i, g, val)
-        m = (1 - b1) * g      + b1 * m  # First  moment estimate.
-        v = (1 - b2) * (g**2) + b2 * v  # Second moment estimate.
-        mhat = m / (1 - b1**(i + 1))    # Bias correction.
-        vhat = v / (1 - b2**(i + 1))
-        x = x - step_size*mhat/(np.sqrt(vhat) + eps)
+        try:
+            val, g = val_and_grad(x, i)
+            if callback: callback(x, i, g, val)
+            m = (1 - b1) * g      + b1 * m  # First  moment estimate.
+            v = (1 - b2) * (g**2) + b2 * v  # Second moment estimate.
+            mhat = m / (1 - b1**(i + 1))    # Bias correction.
+            vhat = v / (1 - b2**(i + 1))
+            x = x - step_size*mhat/(np.sqrt(vhat) + eps)
+        except KeyboardInterrupt:
+            if interrupt:
+                interrupt(x, i, g, val)
+            raise KeyboardInterrupt
     return x
