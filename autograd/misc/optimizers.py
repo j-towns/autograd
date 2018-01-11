@@ -48,7 +48,5 @@ def adam(val_and_grad, x, callback=None, interrupt=None, num_iters=100,
             vhat = v / (1 - b2**(i + 1))
             x = x - step_size*mhat/(np.sqrt(vhat) + eps)
         except KeyboardInterrupt:
-            if interrupt:
-                interrupt(x, i, g, val)
-            raise KeyboardInterrupt
+            break
     return x
