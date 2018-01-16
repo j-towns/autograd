@@ -32,8 +32,23 @@ def unflatten_optimizer(optimize):
     return _optimize
 
 @unflatten_optimizer
-def adam(val_and_grad, x, callback=None, interrupt=None, num_iters=100,
-         step_size=0.001, b1=0.9, b2=0.999, eps=10**-8):
+def sgd(val_and_grad, x, callback=None, num_iters=200, step_size=0.1, mass=0.0):
+    """Stochastic gradient descent with momentum.
+    grad() must have signature grad(x, i), where i is the iteration number."""
+    velocity = np.zeros(len(x))
+    for i in range(num_iters):
+        try:
+            val, g = val_and_grad(x, i)
+            if callback: callback(x, i, g, val)
+            velocity = mass * velocity - (1.0 - mass) * g
+            x = x + step_size * velocity
+        except KeyboardInterrupt:
+            break
+    return x
+
+@unflatten_optimizer
+def adam(val_and_grad, x, callback=None, num_iters=100, step_size=0.001,
+         b1=0.9, b2=0.999, eps=10**-8):
     """Adam as described in http://arxiv.org/pdf/1412.6980.pdf.
     It's basically RMSprop with momentum and some correction terms."""
     m = np.zeros(len(x))
