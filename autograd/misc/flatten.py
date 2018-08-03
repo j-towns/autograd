@@ -24,8 +24,8 @@ def _flatten(value):
         return np.ravel(value)
 
 def _concatenate(lst):
-    lst = list(lst)
-    return np.concatenate(lst) if lst else np.array([])
+    lst = list(arr for arr in lst if arr is not None)
+    return np.concatenate(lst) if lst else None
 
 def flatten_func(func, example):
     _ex, unflatten = flatten(example)

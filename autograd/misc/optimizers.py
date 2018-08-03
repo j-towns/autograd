@@ -51,8 +51,8 @@ def adam(val_and_grad, x, callback=None, num_iters=100, step_size=0.001,
          b1=0.9, b2=0.999, eps=10**-8):
     """Adam as described in http://arxiv.org/pdf/1412.6980.pdf.
     It's basically RMSprop with momentum and some correction terms."""
-    m = np.zeros(len(x))
-    v = np.zeros(len(x))
+    m = np.zeros_like(x)
+    v = np.zeros_like(x)
     for i in range(num_iters):
         try:
             val, g = val_and_grad(x, i)

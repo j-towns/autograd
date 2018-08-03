@@ -626,8 +626,8 @@ def unbroadcast_einsum(x, target_meta, subscript):
     else:
         return unbroadcast(x, target_meta, subscript.index(Ellipsis))
 
-def balanced_eq(x, z, y):
-    return (x == z) / (1.0 + (x == y))
+def balanced_eq(x, ans, y):
+    return ((x == ans) / (1.0 + (x == y))).astype(ans.dtype)
 
 def replace_zero(x, val):
     return anp.where(x, x, val)
