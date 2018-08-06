@@ -20,14 +20,14 @@ def unflatten_optimizer(optimize):
     @wraps(optimize)
     def _optimize(val_and_grad, x0, callback=None, *args, **kwargs):
         _x0, unflatten = flatten(x0)
-        def _val_and_grad(x, i):
-            val, grad = val_and_grad(unflatten(x), i)
-            return val, flatten(grad)[0]
+        def _val_and_grad_and_aux(x, i):
+            val, grad, aux = val_and_grad(unflatten(x), i)
+            return val, flatten(grad)[0], aux
         if callback:
-            _callback = lambda x, i, g, v: callback(unflatten(x), i, unflatten(g), v)
+            _callback = lambda x, i, g, v, a: callback(unflatten(x), i, unflatten(g), v, a)
         else:
             _callback = None
-        return unflatten(optimize(_val_and_grad, _x0, _callback, *args, **kwargs))
+        return unflatten(optimize(_val_and_grad_and_aux, _x0, _callback, *args, **kwargs))
 
     return _optimize
 
@@ -38,8 +38,8 @@ def sgd(val_and_grad, x, callback=None, num_iters=200, step_size=0.1, mass=0.0):
     velocity = np.zeros(len(x))
     for i in range(num_iters):
         try:
-            val, g = val_and_grad(x, i)
-            if callback: callback(x, i, g, val)
+            val, g, aux = val_and_grad(x, i)
+            if callback: callback(x, i, g, val, aux)
             velocity = mass * velocity - (1.0 - mass) * g
             x = x + step_size * velocity
         except KeyboardInterrupt:
@@ -47,16 +47,16 @@ def sgd(val_and_grad, x, callback=None, num_iters=200, step_size=0.1, mass=0.0):
     return x
 
 @unflatten_optimizer
-def adam(val_and_grad, x, callback=None, num_iters=100, step_size=0.001,
-         b1=0.9, b2=0.999, eps=10**-8):
+def adam(val_and_grad, x, callback=None, num_iters=100,
+         step_size=0.001, b1=0.9, b2=0.999, eps=10**-8):
     """Adam as described in http://arxiv.org/pdf/1412.6980.pdf.
     It's basically RMSprop with momentum and some correction terms."""
     m = np.zeros_like(x)
     v = np.zeros_like(x)
     for i in range(num_iters):
         try:
-            val, g = val_and_grad(x, i)
-            if callback: callback(x, i, g, val)
+            val, g, aux = val_and_grad(x, i)
+            if callback: callback(x, i, g, val, aux)
             m = (1 - b1) * g      + b1 * m  # First  moment estimate.
             v = (1 - b2) * (g**2) + b2 * v  # Second moment estimate.
             mhat = m / (1 - b1**(i + 1))    # Bias correction.

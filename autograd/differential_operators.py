@@ -141,6 +141,15 @@ def grad_and_aux(fun, x):
     vjp, (ans, aux) = _make_vjp(lambda x: atuple(fun(x)), x)
     return vjp((vspace(ans).ones(), vspace(aux).zeros())), aux
 
+@unary_to_nary
+def value_and_grad_and_aux(fun, x):
+    vjp, (ans, aux) = _make_vjp(fun, x)
+    if not vspace(ans).size == 1:
+        raise TypeError("value_and_grad only applies to real scalar-output "
+                        "functions. Try jacobian, elementwise_grad or "
+                        "holomorphic_grad.")
+    return ans, vjp((vspace(ans).ones(), vspace(aux).zeros())), aux
+
 def multigrad_dict(fun):
     "Takes gradients wrt all arguments simultaneously,"
     "returns a dict mapping 'argname' to 'gradval'"
