@@ -127,19 +127,18 @@ def make_ggnvp(f, g=lambda x: 1./2*np.sum(x**2, axis=-1), f_argnum=0):
 def value_and_grad(fun, x):
     """Returns a function that returns both value and gradient. Suitable for use
     in scipy.optimize"""
-    vjp, ans = _make_vjp(fun, x)
-    if not vspace(ans).size == 1:
-        raise TypeError("value_and_grad only applies to real scalar-output "
-                        "functions. Try jacobian, elementwise_grad or "
-                        "holomorphic_grad.")
-    return ans, vjp(vspace(ans).ones())
+    return tuple(reversed(_grad_and_aux(lambda x: 2 * (fun(x),), x)))
 
-@unary_to_nary
-def grad_and_aux(fun, x):
+def _grad_and_aux(fun, x):
     """Builds a function that returns the gradient of the first output and the
     (unmodified) second output of a function that returns two outputs."""
     vjp, (ans, aux) = _make_vjp(lambda x: atuple(fun(x)), x)
+    if not vspace(ans).size == 1:
+        raise TypeError("Gradient only applies to real scalar-output "
+                        "functions. Try jacobian, elementwise_grad or "
+                        "holomorphic_grad.")
     return vjp((vspace(ans).ones(), vspace(aux).zeros())), aux
+grad_and_aux = unary_to_nary(_grad_and_aux)
 
 def multigrad_dict(fun):
     "Takes gradients wrt all arguments simultaneously,"
